@@ -1,0 +1,17 @@
+{% if note.linked_tasks %}
+<div class="linked-tasks-list">
+    {% for task in note.linked_tasks %}
+    <div class="linked-task-item">
+        <span class="status-badge status-{{ task.status }}">{{ task.status|replace('_', ' ')|title }}</span>
+        <span class="linked-task-title">{{ task.title }}</span>
+        <button class="btn btn-sm btn-danger"
+                hx-delete="/notes/{{ note.id }}/unlink-task/{{ task.id }}"
+                hx-target="#linked-tasks-list"
+                hx-swap="innerHTML"
+                title="Unlink">&#10005;</button>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="padding: 0.75rem;">No linked tasks.</div>
+{% endif %}

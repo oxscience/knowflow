@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kanban-board">
+    {% for status, label in [('todo', 'To Do'), ('in_progress', 'In Progress'), ('done', 'Done')] %}
+    <div class="kanban-column" data-status="{{ status }}" id="{{ status }}-column">
+        <div class="column-header">
+            <h2>{{ label }}</h2>
+            <span class="count">{{ tasks[status]|length }}</span>
+        </div>
+        <div class="card-list" id="{{ status }}-cards">
+            {% for task in tasks[status] %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+            {% if not tasks[status] %}
+            <div class="empty-state">No tasks yet</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% if delegate_name or delegate_email %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-create a task for the selected contact
+    const form = document.querySelector('.quick-capture form');
+    const titleInput = form.querySelector('input[name="title"]');
+    titleInput.value = 'Task for {{ delegate_name }}';
+    titleInput.focus();
+    titleInput.select();
+    // Store delegation info for after task creation
+    window._pendingDelegation = { name: '{{ delegate_name }}', email: '{{ delegate_email }}' };
+});
+// After quick-capture creates a task, open its detail modal to fill in delegation
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (window._pendingDelegation && evt.detail.elt.closest && evt.detail.elt.closest('.quick-capture')) {
+        delete window._pendingDelegation;
+        // Find the newly added task card and click it to open detail
+        setTimeout(function() {
+            const firstCard = document.querySelector('#todo-cards .task-card .card-title');
+            if (firstCard) firstCard.click();
+        }, 200);
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

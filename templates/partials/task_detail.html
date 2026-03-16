@@ -1,0 +1,111 @@
+<div class="task-detail">
+    <form hx-put="/tasks/{{ task.id }}"
+          hx-target="[data-task-id='{{ task.id }}']"
+          hx-swap="outerHTML"
+          hx-on::after-request="if(event.detail.successful) closeDetailSidebar()">
+
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" value="{{ task.title }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4" placeholder="Add details...">{{ task.description }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select id="priority" name="priority">
+                    <option value="high" {% if task.priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="category_id">Category</label>
+                <select id="category_id" name="category_id">
+                    <option value="">No category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if task.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="due_date">Due Date</label>
+                <input type="date" id="due_date" name="due_date" value="{{ task.due_date or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="tags">Tags (comma separated)</label>
+                <input type="text" id="tags" name="tags" value="{{ task.tags|join(', ') }}" placeholder="e.g. urgent, backend, research">
+            </div>
+        </div>
+
+        <div class="form-group delegation-section">
+            <label class="checkbox-label">
+                <input type="checkbox" name="is_delegated" {% if task.is_delegated %}checked{% endif %}
+                       onchange="document.querySelector('.delegation-fields').classList.toggle('hidden', !this.checked)">
+                Delegate this task
+            </label>
+            <div class="delegation-fields {% if not task.is_delegated %}hidden{% endif %}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="assignee_name">Assignee Name</label>
+                        <input type="text" id="assignee_name" name="assignee_name" value="{{ task.assignee_name }}" placeholder="Name" list="contact-names">
+                        <datalist id="contact-names">
+                            {% for c in contacts %}
+                            <option value="{{ c.name }}" data-email="{{ c.email }}">{{ c.email }}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="assignee_email">Assignee Email</label>
+                        <input type="email" id="assignee_email" name="assignee_email" value="{{ task.assignee_email }}" placeholder="email@example.com" list="contact-emails">
+                        <datalist id="contact-emails">
+                            {% for c in contacts %}
+                            <option value="{{ c.email }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary"
+                    onclick="closeDetailSidebar()">Cancel</button>
+            <button type="button" class="btn btn-danger"
+                    hx-delete="/tasks/{{ task.id }}"
+                    hx-target="[data-task-id='{{ task.id }}']"
+                    hx-swap="outerHTML swap:200ms"
+                    hx-confirm="Delete this task?"
+                    hx-on::after-request="closeDetailSidebar()">Delete</button>
+        </div>
+    </form>
+
+    <div class="task-meta-info">
+        <small>Created: {{ task.created_at }} | Updated: {{ task.updated_at }}</small>
+    </div>
+</div>
+<script>
+(function() {
+    const contacts = [{% for c in contacts %}{ name: "{{ c.name }}", email: "{{ c.email }}" },{% endfor %}];
+    const nameInput = document.getElementById('assignee_name');
+    const emailInput = document.getElementById('assignee_email');
+    if (nameInput && emailInput) {
+        nameInput.addEventListener('change', function() {
+            const match = contacts.find(c => c.name === this.value);
+            if (match) emailInput.value = match.email;
+        });
+        emailInput.addEventListener('change', function() {
+            const match = contacts.find(c => c.email === this.value);
+            if (match) nameInput.value = match.name;
+        });
+    }
+})();
+</script>

@@ -1,0 +1,16 @@
+{% if tasks %}
+<div class="task-search-dropdown">
+    {% for task in tasks %}
+    <button type="button" class="task-search-item"
+            hx-post="/notes/{{ request.path.split('/')[2] }}/link-task"
+            hx-vals='{"task_id": "{{ task.id }}"}'
+            hx-target="#linked-tasks-list"
+            hx-swap="innerHTML"
+            hx-on::after-request="document.getElementById('task-search-input').value=''; document.getElementById('task-search-results').innerHTML=''">
+        <span class="priority-text priority-{{ task.priority }}">{{ task.priority[0]|upper }}</span>
+        {{ task.title }}
+        <span class="status-badge status-{{ task.status }}">{{ task.status|replace('_', ' ')|title }}</span>
+    </button>
+    {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KnowFlow</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body>
+    <nav class="top-bar">
+        <a href="/" class="logo">KnowFlow</a>
+        <div class="nav-links">
+            <a href="/kanban" class="nav-link {% if active == 'kanban' %}active{% endif %}">Kanban</a>
+            <a href="/list" class="nav-link {% if active == 'list' %}active{% endif %}">List</a>
+            <a href="/delegation" class="nav-link {% if active == 'delegation' %}active{% endif %}">Delegation</a>
+            <a href="/notes" class="nav-link {% if active == 'notes' or active == 'graph' %}active{% endif %}">Wiki</a>
+            <a href="/team" class="nav-link {% if active == 'team' %}active{% endif %}">Team</a>
+        </div>
+        <div class="search-bar">
+            <input type="search" name="q" placeholder="Search tasks..."
+                   hx-get="/api/search" hx-trigger="keyup changed delay:300ms"
+                   hx-target="#main-content">
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">
+            <span class="theme-icon"></span>
+        </button>
+    </nav>
+
+    <div class="quick-capture">
+        <form hx-post="/tasks" hx-target="#todo-cards" hx-swap="afterbegin"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+            <input type="text" name="title" placeholder="Quick capture... press Enter" required autofocus>
+            <select name="priority">
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+            </select>
+            <select name="category_id">
+                <option value="">No category</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="modal-overlay" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+        <div id="modal-content" class="modal-content"></div>
+    </div>
+
+    <div id="detail-sidebar" class="detail-sidebar">
+        <div class="detail-sidebar-header">
+            <button class="detail-sidebar-close" onclick="closeDetailSidebar()">&times;</button>
+        </div>
+        <div id="detail-sidebar-content" class="detail-sidebar-body"></div>
+    </div>
+
+    <div class="shortcut-hint">
+        <kbd>&#8984;&#9166;</kbd> Save/Add &nbsp; <kbd>N</kbd> New Task &nbsp; <kbd>/</kbd> Search &nbsp; <kbd>Esc</kbd> Close
+    </div>
+
+    <script>
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('knowflow-theme', next);
+    }
+    // Default to light, respect saved preference
+    (function() {
+        const saved = localStorage.getItem('knowflow-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function openDetailSidebar() {
+        var sidebar = document.getElementById('detail-sidebar');
+        if (sidebar) sidebar.classList.add('open');
+    }
+    function closeDetailSidebar() {
+        var sidebar = document.getElementById('detail-sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+    }
+    </script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

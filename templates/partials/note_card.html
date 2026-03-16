@@ -1,0 +1,17 @@
+<a href="/notes/{{ note.id }}" class="note-card {% if note.is_pinned %}pinned{% endif %}">
+    <div class="note-card-header">
+        <span class="note-title">{% if note.is_pinned %}<span class="pin-icon">&#128204;</span> {% endif %}{{ note.title }}</span>
+    </div>
+    {% if note.content %}
+    <div class="note-preview">{{ note.content[:150] }}{% if note.content|length > 150 %}...{% endif %}</div>
+    {% endif %}
+    <div class="note-meta">
+        {% if note.category_name %}
+        <span class="badge" style="background:{{ note.category_color }}; color: #fff">{{ note.category_name }}</span>
+        {% endif %}
+        {% if note.linked_tasks %}
+        <span class="note-task-count">{{ note.linked_tasks|length }} task(s)</span>
+        {% endif %}
+        <span class="note-date">{{ note.updated_at[:10] }}</span>
+    </div>
+</a>

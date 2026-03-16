@@ -1,0 +1,40 @@
+<div class="search-results">
+    {% if query %}
+    <div class="search-header">
+        <h2>Results for "{{ query }}"</h2>
+        <span class="count">{{ tasks|length }} found</span>
+        <a href="/kanban" class="btn btn-secondary btn-sm">Back to Kanban</a>
+    </div>
+    {% endif %}
+    <div class="search-cards">
+        {% for task in tasks %}
+        <div class="task-card priority-{{ task.priority }}"
+             data-task-id="{{ task.id }}">
+            <div class="card-header">
+                <span class="card-title"
+                      hx-get="/tasks/{{ task.id }}"
+                      hx-target="#modal-content"
+                      hx-trigger="click"
+                      hx-on::after-request="document.getElementById('modal-overlay').classList.remove('hidden')">
+                    {{ task.title }}
+                </span>
+                <span class="status-badge status-{{ task.status }}">{{ task.status|replace('_', ' ')|title }}</span>
+            </div>
+            {% if task.description %}
+            <div class="card-description">{{ task.description[:120] }}{% if task.description|length > 120 %}...{% endif %}</div>
+            {% endif %}
+            <div class="card-meta">
+                {% if task.category_name %}
+                <span class="badge" style="background:{{ task.category_color }}; color: #fff">{{ task.category_name }}</span>
+                {% endif %}
+                {% for tag in task.tags %}
+                <span class="tag">#{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% if not tasks %}
+        <div class="empty-state">No tasks match your search</div>
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="list-view">
+    <div class="filter-bar">
+        <select name="status" hx-get="/list" hx-target="#main-content" hx-include=".filter-bar select">
+            <option value="">All Statuses</option>
+            <option value="todo" {% if filter_status == 'todo' %}selected{% endif %}>To Do</option>
+            <option value="in_progress" {% if filter_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="done" {% if filter_status == 'done' %}selected{% endif %}>Done</option>
+        </select>
+        <select name="priority" hx-get="/list" hx-target="#main-content" hx-include=".filter-bar select">
+            <option value="">All Priorities</option>
+            <option value="high" {% if filter_priority == 'high' %}selected{% endif %}>High</option>
+            <option value="medium" {% if filter_priority == 'medium' %}selected{% endif %}>Medium</option>
+            <option value="low" {% if filter_priority == 'low' %}selected{% endif %}>Low</option>
+        </select>
+        <select name="category_id" hx-get="/list" hx-target="#main-content" hx-include=".filter-bar select">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if filter_category == cat.id|string %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="delegated" hx-get="/list" hx-target="#main-content" hx-include=".filter-bar select">
+            <option value="">All Tasks</option>
+            <option value="1" {% if filter_delegated == '1' %}selected{% endif %}>Delegated</option>
+            <option value="0" {% if filter_delegated == '0' %}selected{% endif %}>Not Delegated</option>
+        </select>
+    </div>
+
+    <table class="task-table">
+        <thead>
+            <tr>
+                <th width="4"></th>
+                <th class="sortable" data-col="1" onclick="sortTable(this)">Title</th>
+                <th class="sortable" data-col="2" onclick="sortTable(this)">Status</th>
+                <th class="sortable" data-col="3" onclick="sortTable(this)">Priority</th>
+                <th class="sortable" data-col="4" onclick="sortTable(this)">Due</th>
+                <th class="sortable" data-col="5" onclick="sortTable(this)">Category</th>
+                <th class="sortable" data-col="6" onclick="sortTable(this)">Assigned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+                {% include "partials/task_row.html" %}
+            {% endfor %}
+            {% if not tasks %}
+            <tr><td colspan="7" class="empty-state">No tasks found</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

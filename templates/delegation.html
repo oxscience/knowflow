@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="delegation-view">
+    <div class="delegation-header">
+        <h1>Delegation</h1>
+        <div class="delegation-actions">
+            {% if email_ready %}
+            <button class="btn btn-primary"
+                    hx-post="/delegation/send-digest"
+                    hx-target="#digest-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#send-spinner">
+                <span id="send-spinner" class="htmx-indicator">...</span>
+                Send Digest (new only)
+            </button>
+            <button class="btn btn-secondary"
+                    hx-post="/delegation/send-digest?all=1"
+                    hx-target="#digest-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#resend-spinner"
+                    hx-confirm="Resend to ALL delegated tasks (including already sent)?">
+                <span id="resend-spinner" class="htmx-indicator">...</span>
+                Resend All
+            </button>
+            <button class="btn btn-secondary"
+                    hx-post="/delegation/check-replies"
+                    hx-target="#replies-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#check-spinner">
+                <span id="check-spinner" class="htmx-indicator">...</span>
+                Check Replies
+            </button>
+            <button class="btn btn-accent"
+                    hx-post="/delegation/sync-inbox"
+                    hx-target="#sync-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#sync-spinner">
+                <span id="sync-spinner" class="htmx-indicator">...</span>
+                Sync Inbox
+            </button>
+            <button class="btn btn-secondary"
+                    hx-post="/delegation/test-connection"
+                    hx-target="#test-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#test-spinner">
+                <span id="test-spinner" class="htmx-indicator">...</span>
+                Test Connection
+            </button>
+            {% else %}
+            <div class="config-warning">
+                Email not configured. Add <code>EMAIL_ADDRESS</code> and <code>EMAIL_PASSWORD</code> to your <code>.env</code> file.
+                <br><small>See <code>.env.example</code> for details.</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="test-result"></div>
+    <div id="sync-result"></div>
+    <div id="digest-result"></div>
+    <div id="replies-result"></div>
+
+    <div class="delegation-grid">
+        <div class="delegation-section">
+            <h2>Delegated Tasks <span class="count">{{ tasks|length }}</span></h2>
+            {% if tasks %}
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th width="4"></th>
+                        <th>Task</th>
+                        <th>Assignee</th>
+                        <th>Status</th>
+                        <th>Sent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr class="task-row priority-{{ task.priority }}">
+                        <td class="row-priority-indicator"></td>
+                        <td class="row-title"
+                            hx-get="/tasks/{{ task.id }}"
+                            hx-target="#detail-sidebar-content"
+                            hx-trigger="click"
+                            hx-on::after-request="openDetailSidebar()">
+                            {{ task.title }}
+                        </td>
+                        <td>
+                            <span class="assignee-info">
+                                {{ task.assignee_name or '-' }}
+                                {% if task.assignee_email %}
+                                <small>({{ task.assignee_email }})</small>
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if task.delegation_status == 'pending' %}
+                            <span class="status-badge status-in_progress">Pending</span>
+                            {% elif task.delegation_status == 'completed' %}
+                            <span class="status-badge status-done">Completed</span>
+                            {% else %}
+                            <span class="status-badge" style="background: #f3f4f6; color: #6b7280;">Not sent</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ task.delegation_sent_at or '-' }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No delegated tasks. Mark tasks as "delegated" in the task detail to assign them.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="delegation-section">
+            <h2>Received Tasks <span class="count">{{ received|length }}</span></h2>
+            {% if received %}
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th width="4"></th>
+                        <th>Task</th>
+                        <th>From</th>
+                        <th>Status</th>
+                        <th>Synced</th>
+                        <th width="40"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in received %}
+                    <tr class="task-row priority-{{ task.priority }}">
+                        <td class="row-priority-indicator"></td>
+                        <td class="row-title"
+                            hx-get="/tasks/{{ task.id }}"
+                            hx-target="#detail-sidebar-content"
+                            hx-trigger="click"
+                            hx-on::after-request="openDetailSidebar()">
+                            {{ task.title }}
+                            <span class="remote-badge">received</span>
+                        </td>
+                        <td><small>{{ task.remote_source }}</small></td>
+                        <td>
+                            <span class="status-badge status-{{ task.status }}">
+                                {{ task.status|replace('_', ' ')|title }}
+                            </span>
+                        </td>
+                        <td><small>{{ task.last_synced or '-' }}</small></td>
+                        <td>
+                            <button class="btn btn-small"
+                                    hx-post="/delegation/send-status-update/{{ task.id }}"
+                                    hx-target="#sync-result"
+                                    hx-swap="innerHTML"
+                                    title="Send status update to sender">
+                                &#8617;
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No received tasks. When someone with KnowFlow delegates a task to you, it will appear here after syncing.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="delegation-section">
+            <h2>Email Log <span class="count">{{ log|length }}</span></h2>
+            {% if log %}
+            <div class="email-log">
+                {% for entry in log %}
+                <div class="log-entry log-{{ entry.direction }}">
+                    <span class="log-direction">{{ ('&#9993; Sent' if entry.direction == 'sent' else '&#8617; Received')|safe }}</span>
+                    <span class="log-task">Task #{{ entry.task_id }}</span>
+                    {% if entry.recipient %}
+                    <span class="log-recipient">{{ entry.recipient }}</span>
+                    {% endif %}
+                    <span class="log-time">{{ entry.processed_at }}</span>
+                    {% if entry.body_snippet %}
+                    <div class="log-snippet">{{ entry.body_snippet[:100] }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">No email activity yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

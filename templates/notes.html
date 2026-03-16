@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="wiki-layout">
+    {% include "partials/wiki_sidebar.html" %}
+
+    <div class="wiki-content">
+        <div class="wiki-hero">
+            <h1>KnowFlow Wiki</h1>
+            <p>Your knowledge base. Create notes, link them with [[Wiki Links]], and build your personal graph.</p>
+        </div>
+
+        {% if sidebar_pinned %}
+        <div class="wiki-section">
+            <h2>Pinned</h2>
+            <div class="wiki-cards">
+                {% for note in sidebar_pinned %}
+                {% include "partials/note_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% for cat_name, cat_notes in sidebar_groups %}
+        <div class="wiki-section">
+            <h2>{{ cat_name or 'Uncategorized' }}</h2>
+            <div class="wiki-cards">
+                {% for note in cat_notes|sort(attribute='updated_at', reverse=true) %}
+                {% include "partials/note_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not notes %}
+        <div class="empty-state">
+            No notes yet. Click "+ New" in the sidebar to get started.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<button class="sidebar-mobile-toggle" onclick="document.getElementById('wiki-sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- Graph Modal -->
+<div class="graph-modal" id="graph-modal" onclick="if(event.target===this)closeGraphModal()">
+    <div class="graph-modal-content">
+        <div class="graph-modal-header">
+            <h3>Knowledge Graph</h3>
+            <button class="graph-modal-close" onclick="closeGraphModal()">&times;</button>
+        </div>
+        <div class="graph-modal-body">
+            <div class="graph-container" id="graph-container">
+                <svg id="graph-svg"></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var graphLoaded = false;
+function openGraphModal() {
+    document.getElementById('graph-modal').classList.add('visible');
+    if (!graphLoaded) { graphLoaded = true; loadGraph(); }
+}
+function closeGraphModal() {
+    document.getElementById('graph-modal').classList.remove('visible');
+}
+
+function loadGraph() {
+    var script = document.createElement('script');
+    script.src = 'https://d3js.org/d3.v7.min.js';
+    script.onload = function() {
+        var container = document.getElementById('graph-container');
+        var svg = d3.select('#graph-svg');
+        var width = container.clientWidth;
+        var height = container.clientHeight || 500;
+        svg.attr('width', width).attr('height', height);
+        var g = svg.append('g');
+        svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', function(e) { g.attr('transform', e.transform); }));
+
+        fetch('/api/graph-data').then(function(r) { return r.json(); }).then(function(data) {
+            if (!data.nodes.length) {
+                g.append('text').attr('x', width/2).attr('y', height/2)
+                    .attr('text-anchor', 'middle').attr('fill', 'var(--color-text-muted)')
+                    .attr('font-size', '13px').text('Link notes with [[Title]] to see the graph.');
+                return;
+            }
+            var simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.edges).id(function(d){return d.id;}).distance(80))
+                .force('charge', d3.forceManyBody().strength(-150))
+                .force('center', d3.forceCenter(width/2, height/2))
+                .force('collision', d3.forceCollide().radius(function(d){return nr(d)+6;}));
+            var link = g.append('g').selectAll('line').data(data.edges).join('line').attr('class','graph-edge');
+            var node = g.append('g').selectAll('g').data(data.nodes).join('g')
+                .attr('class','graph-node').style('cursor','pointer')
+                .on('click', function(e,d){window.location.href='/notes/'+d.id;})
+                .call(d3.drag().on('start',ds).on('drag',dr).on('end',de));
+            node.append('circle').attr('r', function(d){return nr(d);})
+                .attr('fill', function(d){return d.color||'#6b7280';}).attr('opacity',0.85);
+            node.append('text').text(function(d){return d.title.length>15?d.title.slice(0,13)+'...':d.title;})
+                .attr('dy', function(d){return nr(d)+12;}).attr('text-anchor','middle').attr('class','graph-label');
+            var tooltip = d3.select('body').append('div').attr('class','graph-tooltip');
+            node.on('mouseenter', function(e,d){
+                tooltip.style('opacity',1).html('<strong>'+d.title+'</strong>'+(d.category?'<br><small>'+d.category+'</small>':''))
+                    .style('left',(e.pageX+12)+'px').style('top',(e.pageY-10)+'px');
+            }).on('mouseleave', function(){tooltip.style('opacity',0);});
+            simulation.on('tick', function(){
+                link.attr('x1',function(d){return d.source.x;}).attr('y1',function(d){return d.source.y;})
+                    .attr('x2',function(d){return d.target.x;}).attr('y2',function(d){return d.target.y;});
+                node.attr('transform',function(d){return 'translate('+d.x+','+d.y+')';});
+            });
+            function nr(d){return Math.max(5,Math.min(14,5+d.connections*2.5));}
+            function ds(e,d){if(!e.active)simulation.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;}
+            function dr(e,d){d.fx=e.x;d.fy=e.y;}
+            function de(e,d){if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null;}
+        });
+    };
+    document.head.appendChild(script);
+}
+</script>
+{% endblock %}

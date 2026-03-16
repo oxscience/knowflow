@@ -1,0 +1,33 @@
+{% if error %}
+<div class="alert alert-error">Sync error: {{ error }}</div>
+{% else %}
+<div class="alert alert-success">
+    {% if imported %}
+        <strong>{{ imported|length }} task(s) imported:</strong>
+        <ul style="margin: 4px 0; padding-left: 20px;">
+        {% for task in imported %}
+            <li>{{ task.title }} <small>(from {{ task.remote_source }})</small></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% if updated %}
+        <strong>{{ updated|length }} task(s) updated:</strong>
+        <ul style="margin: 4px 0; padding-left: 20px;">
+        {% for u in updated %}
+            <li>{{ u.title }} → {{ u.new_status }} <small>({{ u.from }})</small></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% if email_tasks %}
+        <strong>{{ email_tasks|length }} task(s) from email:</strong>
+        <ul style="margin: 4px 0; padding-left: 20px;">
+        {% for et in email_tasks %}
+            <li>{{ et.task.title }} <small>({{ 'forwarded' if et.is_forwarded else 'from ' + et.sender }})</small></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% if not imported and not updated and not email_tasks %}
+        No new tasks or updates found.
+    {% endif %}
+</div>
+{% endif %}

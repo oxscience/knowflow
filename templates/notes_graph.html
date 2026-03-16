@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="graph-view">
+    <div class="graph-header">
+        <h1>Knowledge Graph</h1>
+        <a href="/notes" class="btn btn-secondary">Back to Wiki</a>
+    </div>
+    <div class="graph-container" id="graph-container">
+        <svg id="graph-svg"></svg>
+    </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+    const container = document.getElementById('graph-container');
+    const svg = d3.select('#graph-svg');
+    const width = container.clientWidth;
+    const height = container.clientHeight || 600;
+
+    svg.attr('width', width).attr('height', height);
+
+    // Zoom
+    const g = svg.append('g');
+    svg.call(d3.zoom()
+        .scaleExtent([0.2, 4])
+        .on('zoom', (e) => g.attr('transform', e.transform)));
+
+    fetch('/api/graph-data')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.nodes.length) {
+                g.append('text')
+                    .attr('x', width / 2).attr('y', height / 2)
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', 'var(--color-text-muted)')
+                    .text('No notes yet. Create notes and link them with [[Note Title]].');
+                return;
+            }
+
+            const nodeMap = {};
+            data.nodes.forEach(n => nodeMap[n.id] = n);
+
+            const simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.edges).id(d => d.id).distance(120))
+                .force('charge', d3.forceManyBody().strength(-200))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 8));
+
+            // Edges
+            const link = g.append('g')
+                .selectAll('line')
+                .data(data.edges)
+                .join('line')
+                .attr('class', 'graph-edge');
+
+            // Nodes
+            const node = g.append('g')
+                .selectAll('g')
+                .data(data.nodes)
+                .join('g')
+                .attr('class', 'graph-node')
+                .style('cursor', 'pointer')
+                .on('click', (e, d) => window.location.href = '/notes/' + d.id)
+                .call(d3.drag()
+                    .on('start', dragStart)
+                    .on('drag', dragging)
+                    .on('end', dragEnd));
+
+            node.append('circle')
+                .attr('r', d => nodeRadius(d))
+                .attr('fill', d => d.color || '#6b7280')
+                .attr('opacity', 0.85);
+
+            node.append('text')
+                .text(d => d.title.length > 20 ? d.title.slice(0, 18) + '...' : d.title)
+                .attr('dy', d => nodeRadius(d) + 14)
+                .attr('text-anchor', 'middle')
+                .attr('class', 'graph-label');
+
+            // Hover tooltip
+            const tooltip = d3.select('body').append('div').attr('class', 'graph-tooltip');
+
+            node.on('mouseenter', (e, d) => {
+                tooltip.style('opacity', 1)
+                    .html(`<strong>${d.title}</strong>${d.category ? '<br><small>' + d.category + '</small>' : ''}`)
+                    .style('left', (e.pageX + 12) + 'px')
+                    .style('top', (e.pageY - 10) + 'px');
+            }).on('mouseleave', () => tooltip.style('opacity', 0));
+
+            simulation.on('tick', () => {
+                link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function nodeRadius(d) { return Math.max(6, Math.min(20, 6 + d.connections * 3)); }
+
+            function dragStart(e, d) {
+                if (!e.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x; d.fy = d.y;
+            }
+            function dragging(e, d) { d.fx = e.x; d.fy = e.y; }
+            function dragEnd(e, d) {
+                if (!e.active) simulation.alphaTarget(0);
+                d.fx = null; d.fy = null;
+            }
+        });
+})();
+</script>
+{% endblock %}

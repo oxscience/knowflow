@@ -1,0 +1,29 @@
+<div class="task-card priority-{{ task.priority }} {% if task.due_date and task.due_date < now_date and task.status != 'done' %}overdue{% endif %}"
+     draggable="true"
+     data-task-id="{{ task.id }}"
+     data-position="{{ task.position }}">
+    <div class="card-header">
+        <span class="card-title"
+              hx-get="/tasks/{{ task.id }}"
+              hx-target="#detail-sidebar-content"
+              hx-trigger="click"
+              hx-on::after-request="openDetailSidebar()">
+            {{ task.title }}
+        </span>
+        <span class="card-priority">{{ task.priority[0]|upper }}</span>
+    </div>
+    <div class="card-meta">
+        {% if task.due_date and (task.due_date <= soon_date or (task.due_date < now_date and task.status != 'done')) %}
+        <span class="due-date {% if task.due_date < now_date and task.status != 'done' %}overdue{% endif %}">{{ task.due_date }}</span>
+        {% endif %}
+        {% if task.category_name %}
+        <span class="card-cat-dot" style="background:{{ task.category_color }}" title="{{ task.category_name }}"></span>
+        {% endif %}
+        {% if task.is_delegated %}
+        <span class="badge badge-delegated" title="Delegated to {{ task.assignee_name }}">&#9993; {{ task.assignee_name }}</span>
+        {% endif %}
+        {% if task.is_remote %}
+        <span class="remote-badge" title="Received from {{ task.remote_source }}">&#8615;</span>
+        {% endif %}
+    </div>
+</div>

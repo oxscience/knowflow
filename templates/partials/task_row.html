@@ -1,0 +1,29 @@
+<tr class="task-row priority-{{ task.priority }} {% if task.due_date and task.due_date < now_date and task.status != 'done' %}overdue{% endif %}" data-task-id="{{ task.id }}">
+    <td class="row-priority-indicator"></td>
+    <td class="row-title"
+        hx-get="/tasks/{{ task.id }}"
+        hx-target="#detail-sidebar-content"
+        hx-trigger="click"
+        hx-on::after-request="openDetailSidebar()">
+        {{ task.title }}
+    </td>
+    <td><span class="status-badge status-{{ task.status }}">{{ task.status|replace('_', ' ')|title }}</span></td>
+    <td><span class="priority-text priority-{{ task.priority }}">{{ task.priority|title }}</span></td>
+    <td>
+        {% if task.due_date %}
+        <span class="due-date {% if task.due_date < now_date and task.status != 'done' %}overdue{% endif %}">{{ task.due_date }}</span>
+        {% else %}-{% endif %}
+    </td>
+    <td>
+        {% if task.category_name %}
+        <span class="badge" style="background:{{ task.category_color }}; color: #fff">{{ task.category_name }}</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if task.is_delegated %}
+        <span class="badge badge-delegated">{{ task.assignee_name }}</span>
+        {% elif task.is_remote %}
+        <span class="remote-badge">&#8615; {{ task.remote_source }}</span>
+        {% endif %}
+    </td>
+</tr>

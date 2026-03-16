@@ -1,0 +1,160 @@
+{% if not llm_configured %}
+<div class="ai-suggestions-section">
+    <div class="ai-header">
+        <span class="ai-icon">&#9733;</span> AI Suggestions
+    </div>
+    <div class="ai-disabled-msg">
+        Starte <code>ollama serve</code> mit einem Modell (z.B. <code>qwen2.5:7b</code>), oder setze <code>LLM_API_KEY</code> in <code>.env</code> für Cloud-API.
+    </div>
+</div>
+{% elif suggestions %}
+<div class="ai-suggestions-section">
+    <div class="ai-header">
+        <span class="ai-icon">&#9733;</span> AI Suggestions
+        <button class="btn-sm btn-secondary ai-refresh"
+                hx-post="/api/extract/{{ note_id }}"
+                hx-target="#ai-suggestions"
+                hx-swap="innerHTML"
+                hx-indicator="#ai-loading">
+            &#8635; Refresh
+        </button>
+        <span id="ai-loading" class="htmx-indicator">analyzing...</span>
+    </div>
+
+    {% if suggestions.tasks %}
+    <div class="suggestion-group">
+        <h4 class="suggestion-group-title">
+            Tasks <span class="count">{{ suggestions.tasks|length }}</span>
+        </h4>
+        {% for task in suggestions.tasks %}
+        <div class="suggestion-item"
+             {% if task.source_start is not none %}data-source-start="{{ task.source_start }}" data-source-end="{{ task.source_end }}"{% endif %}>
+            <div class="suggestion-content">
+                <span class="suggestion-label priority-{{ task.priority }}">{{ task.priority[0]|upper }}</span>
+                <span class="suggestion-title">{{ task.title }}</span>
+                {% if task.due_date %}
+                <span class="suggestion-date">{{ task.due_date }}</span>
+                {% endif %}
+                {% if task.assignee %}
+                <span class="suggestion-assignee">&#9993; {{ task.assignee }}</span>
+                {% endif %}
+            </div>
+            <div class="suggestion-source" title="Source text">
+                &ldquo;{{ task.source_text }}&rdquo;
+            </div>
+            <div class="suggestion-actions">
+                <form hx-post="/api/extract/accept-task/{{ note_id }}"
+                      hx-target="#linked-tasks-list" hx-swap="innerHTML">
+                    <input type="hidden" name="title" value="{{ task.title }}">
+                    <input type="hidden" name="priority" value="{{ task.priority }}">
+                    <input type="hidden" name="due_date" value="{{ task.due_date }}">
+                    <input type="hidden" name="assignee_name" value="{{ task.assignee }}">
+                    <button type="submit" class="btn-small btn-accept">+ Create Task</button>
+                </form>
+                <button class="btn-small btn-dismiss"
+                        onclick="this.closest('.suggestion-item').remove()">Dismiss</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if suggestions.tags %}
+    <div class="suggestion-group">
+        <h4 class="suggestion-group-title">
+            Tags <span class="count">{{ suggestions.tags|length }}</span>
+        </h4>
+        {% for tag in suggestions.tags %}
+        <div class="suggestion-item"
+             {% if tag.source_start is not none %}data-source-start="{{ tag.source_start }}" data-source-end="{{ tag.source_end }}"{% endif %}>
+            <div class="suggestion-content">
+                <span class="suggestion-tag {% if tag.already_exists %}tag-exists{% endif %}">
+                    #{{ tag.name }}
+                </span>
+                {% if tag.already_exists %}
+                <span class="tag-exists-label">(exists)</span>
+                {% endif %}
+            </div>
+            <div class="suggestion-source">&ldquo;{{ tag.source_text[:80] }}&rdquo;</div>
+            <div class="suggestion-actions">
+                {% if not tag.already_exists %}
+                <button class="btn-small btn-accept"
+                        hx-post="/api/extract/accept-tag/{{ note_id }}"
+                        hx-vals='{"tag_name": "{{ tag.name }}"}'
+                        hx-target="closest .suggestion-item"
+                        hx-swap="outerHTML">+ Add Tag</button>
+                {% endif %}
+                <button class="btn-small btn-dismiss"
+                        onclick="this.closest('.suggestion-item').remove()">Dismiss</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if suggestions.contacts %}
+    <div class="suggestion-group">
+        <h4 class="suggestion-group-title">
+            People <span class="count">{{ suggestions.contacts|length }}</span>
+        </h4>
+        {% for contact in suggestions.contacts %}
+        <div class="suggestion-item"
+             {% if contact.source_start is not none %}data-source-start="{{ contact.source_start }}" data-source-end="{{ contact.source_end }}"{% endif %}>
+            <div class="suggestion-content">
+                <span class="suggestion-contact-name">{{ contact.name }}</span>
+                {% if contact.email %}
+                <span class="suggestion-contact-email">{{ contact.email }}</span>
+                {% endif %}
+                {% if contact.already_exists %}
+                <span class="tag-exists-label">(known)</span>
+                {% endif %}
+            </div>
+            <div class="suggestion-actions">
+                {% if not contact.already_exists %}
+                <form hx-post="/api/extract/accept-contact"
+                      hx-target="closest .suggestion-item"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="name" value="{{ contact.name }}">
+                    <input type="hidden" name="email" value="{{ contact.email }}">
+                    <button type="submit" class="btn-small btn-accept">+ Add Contact</button>
+                </form>
+                {% endif %}
+                <button class="btn-small btn-dismiss"
+                        onclick="this.closest('.suggestion-item').remove()">Dismiss</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if suggestions.related_notes %}
+    <div class="suggestion-group">
+        <h4 class="suggestion-group-title">
+            Related Notes <span class="count">{{ suggestions.related_notes|length }}</span>
+        </h4>
+        {% for rel in suggestions.related_notes %}
+        <div class="suggestion-item">
+            <div class="suggestion-content">
+                <a href="/notes/{{ rel.note_id }}" class="suggestion-note-link">{{ rel.title }}</a>
+                {% if rel.category_name %}
+                <span class="badge" style="background:{{ rel.category_color }}; color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;">{{ rel.category_name }}</span>
+                {% endif %}
+            </div>
+            <div class="suggestion-actions">
+                <button class="btn-small btn-accept"
+                        onclick="insertWikiLink('{{ rel.title }}'); this.closest('.suggestion-item').remove();">
+                    [[ ]] Link
+                </button>
+                <button class="btn-small btn-dismiss"
+                        onclick="this.closest('.suggestion-item').remove()">Dismiss</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not suggestions.tasks and not suggestions.tags and not suggestions.contacts and not suggestions.related_notes %}
+    <div class="ai-empty">No suggestions found for this note.</div>
+    {% endif %}
+</div>
+{% endif %}

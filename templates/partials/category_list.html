@@ -1,0 +1,17 @@
+{% if categories %}
+<div class="category-cards">
+    {% for cat in categories %}
+    <div class="category-card">
+        <span class="badge" style="background: {{ cat.color }}; color: #fff;">{{ cat.name }}</span>
+        <button class="btn btn-sm btn-danger"
+                hx-delete="/team/categories/{{ cat.id }}"
+                hx-target="#category-list"
+                hx-swap="innerHTML"
+                hx-confirm="Delete category '{{ cat.name }}'? Tasks using it will become uncategorized."
+                title="Delete">&#10005;</button>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No categories.</div>
+{% endif %}

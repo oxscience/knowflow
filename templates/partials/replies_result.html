@@ -1,0 +1,16 @@
+{% if error %}
+<div class="alert alert-danger">
+    <strong>Error checking replies:</strong> {{ error }}
+</div>
+{% elif replies %}
+<div class="alert alert-success">
+    <strong>{{ replies|length }} task(s) completed via email!</strong>
+    <ul>
+        {% for r in replies %}
+        <li>Task #{{ r.task_id }} - marked as done (reply from {{ r.from }})</li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="alert alert-info">No new completion replies found.</div>
+{% endif %}

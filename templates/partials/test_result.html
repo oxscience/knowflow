@@ -1,0 +1,13 @@
+{% if results.smtp == 'ok' and results.imap == 'ok' %}
+<div class="alert alert-success">
+    <strong>Connection OK!</strong> SMTP and IMAP are working.
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <strong>Connection issues:</strong>
+    <ul>
+        <li>SMTP (sending): {% if results.smtp == 'ok' %}OK{% else %}{{ results.smtp }}{% endif %}</li>
+        <li>IMAP (receiving): {% if results.imap == 'ok' %}OK{% else %}{{ results.imap }}{% endif %}</li>
+    </ul>
+</div>
+{% endif %}

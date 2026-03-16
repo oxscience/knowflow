@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="team-view">
+    <div class="team-grid">
+        <!-- Contacts Section -->
+        <div class="team-section">
+            <div class="section-header">
+                <h2>Team <span class="count">{{ contacts|length }}</span></h2>
+            </div>
+            <form class="inline-form" hx-post="/team/contacts" hx-target="#contact-list" hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.successful) this.reset()">
+                <input type="text" name="name" placeholder="Name" required>
+                <input type="email" name="email" placeholder="Email" required>
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+            <div id="contact-list">
+                {% include "partials/contact_list.html" %}
+            </div>
+        </div>
+
+        <!-- Categories Section -->
+        <div class="team-section">
+            <div class="section-header">
+                <h2>Categories <span class="count">{{ categories|length }}</span></h2>
+            </div>
+            <form class="inline-form" hx-post="/team/categories" hx-target="#category-list" hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.successful) this.reset()">
+                <input type="text" name="name" placeholder="Category name" required>
+                <input type="color" name="color" value="#6366f1" class="color-input">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+            <div id="category-list">
+                {% include "partials/category_list.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

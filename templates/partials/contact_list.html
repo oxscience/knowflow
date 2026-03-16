@@ -1,0 +1,32 @@
+{% if contacts %}
+<div class="contact-cards">
+    {% for contact in contacts %}
+    <div class="contact-card">
+        <div class="contact-info">
+            <span class="contact-name">{{ contact.name }}</span>
+            <span class="contact-email">{{ contact.email }}</span>
+        </div>
+        <div class="contact-actions">
+            <a href="/kanban?delegate_to={{ contact.id }}"
+               class="btn btn-sm btn-primary"
+               onclick="event.preventDefault(); createTaskForContact('{{ contact.name }}', '{{ contact.email }}')"
+               title="New task for {{ contact.name }}">+ Task</a>
+            <button class="btn btn-sm btn-danger"
+                    hx-delete="/team/contacts/{{ contact.id }}"
+                    hx-target="#contact-list"
+                    hx-swap="innerHTML"
+                    hx-confirm="Remove {{ contact.name }}?"
+                    title="Remove">&#10005;</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<script>
+function createTaskForContact(name, email) {
+    // Navigate to kanban and open a quick-create modal with pre-filled delegation
+    window.location.href = '/kanban?delegate_name=' + encodeURIComponent(name) + '&delegate_email=' + encodeURIComponent(email);
+}
+</script>
+{% else %}
+<div class="empty-state">No contacts yet. Contacts are saved automatically when you delegate tasks.</div>
+{% endif %}

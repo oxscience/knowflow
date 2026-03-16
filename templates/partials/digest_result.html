@@ -1,0 +1,21 @@
+{% if message %}
+<div class="alert alert-info">{{ message }}</div>
+{% else %}
+<div class="alert alert-success">
+    <strong>Digest sent!</strong>
+    <ul>
+        {% for r in results %}
+        <li>
+            Task #{{ r.task_id }}:
+            {% if r.status == 'sent' %}
+            <span class="text-success">Sent</span>
+            {% elif r.status == 'skipped' %}
+            <span class="text-muted">Skipped ({{ r.reason }})</span>
+            {% else %}
+            <span class="text-danger">Error: {{ r.reason }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}

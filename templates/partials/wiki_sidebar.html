@@ -1,0 +1,44 @@
+<aside class="wiki-sidebar" id="wiki-sidebar">
+    <div class="sidebar-header">
+        <input type="search" class="sidebar-search" id="sidebar-search" placeholder="Filter notes...">
+        <a href="/notes/new" class="btn btn-primary sidebar-new-btn">+ New</a>
+    </div>
+
+    <nav class="sidebar-nav">
+        {% if sidebar_pinned %}
+        <div class="sidebar-section">
+            <button class="sidebar-section-toggle" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="chevron">&#9662;</span> Pinned
+            </button>
+            <div class="sidebar-section-items">
+                {% for note in sidebar_pinned %}
+                <a href="/notes/{{ note.id }}" class="sidebar-note-link {% if active_note_id == note.id %}active{% endif %}" data-title="{{ note.title|lower }}">
+                    <span class="pin-marker">&#128204;</span>{{ note.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% for cat_name, cat_notes in sidebar_groups %}
+        <div class="sidebar-section">
+            <button class="sidebar-section-toggle" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="chevron">&#9662;</span> {{ cat_name or 'Uncategorized' }}
+            </button>
+            <div class="sidebar-section-items">
+                {% for note in cat_notes|sort(attribute='title') %}
+                <a href="/notes/{{ note.id }}" class="sidebar-note-link {% if active_note_id == note.id %}active{% endif %}" data-title="{{ note.title|lower }}">
+                    {{ note.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="sidebar-graph-btn" onclick="openGraphModal()">
+            &#9679; Knowledge Graph
+        </button>
+    </div>
+</aside>

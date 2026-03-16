@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="wiki-layout">
+    {% include "partials/wiki_sidebar.html" %}
+
+    <div class="wiki-content">
+        <div class="note-editor-view">
+            {% if saved %}
+            <div class="alert alert-success">Note saved!</div>
+            {% endif %}
+
+            <form {% if note %}
+                  hx-put="/notes/{{ note.id }}"
+                  hx-target="#main-content"
+                  hx-swap="innerHTML"
+                  {% else %}
+                  action="/notes" method="POST"
+                  {% endif %}>
+
+                <div class="editor-header">
+                    <input type="text" name="title" class="editor-title-input"
+                           value="{{ note.title if note else prefill_title|default('', true) }}"
+                           placeholder="Note title..." required autofocus>
+                    <div class="editor-actions">
+                        <select name="category_id" class="filter-select">
+                            <option value="">No category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if note and note.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="is_pinned" {% if note and note.is_pinned %}checked{% endif %}>
+                            Pin
+                        </label>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        {% if note %}
+                        <button type="button" class="btn btn-secondary ai-analyze-btn"
+                                hx-post="/api/extract/{{ note.id }}"
+                                hx-target="#ai-suggestions"
+                                hx-swap="innerHTML"
+                                hx-disabled-elt="this"
+                                title="Analyze note with AI">&#9733; Analyze</button>
+                        <button type="button" class="btn btn-danger"
+                                hx-delete="/notes/{{ note.id }}"
+                                hx-confirm="Delete this note?">Delete</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="editor-body">
+                    <div class="editor-toolbar">
+                        <button type="button" class="toolbar-btn" data-action="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                        <button type="button" class="toolbar-btn" data-action="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                        <button type="button" class="toolbar-btn" data-action="heading" title="Heading">H</button>
+                        <span class="toolbar-divider"></span>
+                        <button type="button" class="toolbar-btn" data-action="link" title="Link (Ctrl+K)">&#128279;</button>
+                        <button type="button" class="toolbar-btn" data-action="wikilink" title="Wiki Link">[[ ]]</button>
+                        <span class="toolbar-divider"></span>
+                        <button type="button" class="toolbar-btn" data-action="list" title="Bullet List">&#8226;</button>
+                        <button type="button" class="toolbar-btn" data-action="code" title="Inline Code">&lt;/&gt;</button>
+                        <button type="button" class="toolbar-btn" data-action="quote" title="Blockquote">&#8221;</button>
+                    </div>
+                    <div class="editor-split">
+                        <div class="editor-write">
+                            <textarea name="content" class="editor-textarea"
+                                      placeholder="Start writing... Use [[Note Title]] to link notes"
+                                      rows="20">{{ note.content if note else '' }}</textarea>
+                        </div>
+                        <div class="editor-preview">
+                            <div class="preview-header">Preview</div>
+                            <div class="markdown-preview" id="preview-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            {% if note %}
+            <div class="editor-sidebar">
+                {% if backlinks %}
+                <div class="backlinks-section">
+                    <h3>Backlinks <span class="count">{{ backlinks|length }}</span></h3>
+                    <div class="backlinks-list">
+                        {% for bl in backlinks %}
+                        <a href="/notes/{{ bl.id }}" class="backlink-item">{{ bl.title }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="linked-tasks-section">
+                    <h3>Linked Tasks</h3>
+                    <div id="linked-tasks-list">
+                        {% include "partials/linked_tasks.html" %}
+                    </div>
+                    <div class="link-task-form">
+                        <input type="search" id="task-search-input" placeholder="Search tasks to link..."
+                               hx-get="/api/tasks-search" hx-trigger="keyup changed delay:300ms"
+                               hx-target="#task-search-results" name="q">
+                        <div id="task-search-results"></div>
+                    </div>
+                </div>
+
+                <div class="ai-suggestions-panel" id="ai-suggestions">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<button class="sidebar-mobile-toggle" onclick="document.getElementById('wiki-sidebar').classList.toggle('open')">&#9776;</button>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    function initEditor() {
+        const ta = document.querySelector('.editor-textarea');
+        if (ta && typeof MarkdownEditor !== 'undefined') new MarkdownEditor(ta);
+    }
+    document.addEventListener('DOMContentLoaded', initEditor);
+    document.body.addEventListener('htmx:afterSwap', initEditor);
+</script>
+{% endblock %}
